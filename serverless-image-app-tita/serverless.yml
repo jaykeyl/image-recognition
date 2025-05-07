@@ -4,14 +4,13 @@ org: 1upbaws2025
 service: serverless-image-app-tita
 
 package:
-  individually: true
-  patterns:
-    - '!config.json'
-    - '!package.json'
-    - '!package-lock.json'
-    - '!README.md'
-    - '!serverless.yml'
-    - '!.gitignore'
+  exclude:
+    - config.json
+    - package.json
+    - package-lock.json
+    - README.md
+    - serverless.yml
+    - .gitignore
 provider:
   name: aws
   runtime: nodejs20.x
@@ -26,31 +25,58 @@ provider:
         - s3:*
         - rekognition:DetectLabels
       Resource:
+        - arn:aws:s3:::${file(config.json):S3_IMAGE_BUCKET}
         - arn:aws:s3:::${file(config.json):S3_IMAGE_BUCKET}/*
+    - Effect: "Allow"
+      Action:
+        - rekognition:DetectLabels
+      Resource: "*"
+    - Effect: "Allow"
+      Action: 
+        - dynamodb:PutItem
+      Resource: "*"
 
 functions:
-  hello:
-    handler: handler.hello
+  titaGetSignedUrl:
+    handler: src/handler.getSignedUrl
     events:
       - httpApi:
-          path: /
+          path: /signed-url
           method: get
-
+  processImage:
+    handler: src/recognize.processImage
+    events:
+      - s3:
+          bucket: ${self:provider.environment.BUCKET_NAME}
+          event: s3:ObjectCreated:Put
+          existing: true
 resources:
- Resources:
-  UploadBucket:
-     Type: AWS::S3::Bucket
-     Properties:
-       BucketName: ${self:provider.environment.BUCKET_NAME}
-  ImageTagsTable:
-     Type: AWS::DynamoDB::Table
-     Properties:
-       TableName: ${self:provider.environment.TABLE_NAME}
-       AttributeDefinitions:
-         - AttributeName: image
-           AttributeType: S
-       KeySchema:
-         - AttributeName: image
-           KeyType: HASH
-       BillingMode: PAY_PER_REQUEST
+  Resources:
+    UploadBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:provider.environment.BUCKET_NAME}
+        CorsConfiguration:
+          CorsRules:
+            - AllowedMethods:
+                - PUT
+                - POST
+                - GET
+                - DELETE
+              AllowedOrigins:
+                - "*"
+              AllowedHeaders:
+                - "*"
+              MaxAge: 3000
+    ImageTagsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.TABLE_NAME}
+        AttributeDefinitions:
+          - AttributeName: image
+            AttributeType: S
+        KeySchema:
+          - AttributeName: image
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
 
