@@ -10,7 +10,7 @@
       const file = document.getElementById('fileInput').files[0];
       if (!file) return alert('Select a file first.');
 
-      const apiUrl = 'https://p6ctptpefe.execute-api.us-east-1.amazonaws.com/signed-url';
+      const apiUrl = 'https://mxiggkh8l9.execute-api.us-east-1.amazonaws.com/signed-url';
       const res = await fetch(`${apiUrl}?filename=${file.name}&filetype=${file.type}`);
       const { uploadURL } = await res.json();
 

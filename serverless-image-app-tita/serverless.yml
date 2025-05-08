@@ -11,6 +11,9 @@ package:
     - README.md
     - serverless.yml
     - .gitignore
+    - node_modules/**
+    - nodejs/**
+    - layer_content.zip
 provider:
   name: aws
   runtime: nodejs20.x
@@ -39,17 +42,29 @@ provider:
 functions:
   titaGetSignedUrl:
     handler: src/handler.getSignedUrl
+    layers: 
+      - { Ref: TitaDependenciesLambdaLayer }
     events:
       - httpApi:
           path: /signed-url
           method: get
   processImage:
     handler: src/recognize.processImage
+    layers: 
+      - { Ref: TitaDependenciesLambdaLayer }
     events:
       - s3:
           bucket: ${self:provider.environment.BUCKET_NAME}
           event: s3:ObjectCreated:Put
           existing: true
+layers:
+  titaDependencies:
+    name: 'tita-serverless-dependencies'
+    compatibleRuntimes:
+      - "nodejs20.x"
+    package:
+      artifact: layer_content.zip
+
 resources:
   Resources:
     UploadBucket:
